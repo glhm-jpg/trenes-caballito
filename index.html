@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trenes Caballito</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; }
+    .container { max-width: 520px; margin: 0 auto; }
+    h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+    .subtitulo { font-size: 13px; color: #888; margin-bottom: 1.5rem; }
+    .tren-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 10px; display: flex; align-items: center; gap: 16px; }
+    .minutos { font-size: 28px; font-weight: 500; min-width: 52px; text-align: center; }
+    .minutos-label { font-size: 11px; color: #888; text-align: center; margin-top: 2px; }
+    .separador { width: 1px; height: 40px; background: #e5e5e5; }
+    .ramal { font-size: 14px; font-weight: 500; }
+    .detalle { font-size: 12px; color: #888; margin-top: 3px; }
+    .anden { font-size: 12px; background: #f5f5f3; border: 1px solid #e5e5e5; border-radius: 8px; padding: 3px 10px; color: #666; white-space: nowrap; }
+    .badge-ahora { font-size: 11px; background: #e6f4ea; color: #2d7a3a; border-radius: 8px; padding: 2px 8px; display: inline-block; margin-left: 8px; }
+    .btn { display: block; margin: 1.5rem auto 0; padding: 8px 24px; font-size: 13px; background: #fff; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; }
+    .btn:hover { background: #f5f5f3; }
+    .actualizado { font-size: 12px; color: #aaa; text-align: right; margin-bottom: 1rem; }
+    .error-msg { font-size: 14px; color: #888; text-align: center; padding: 2rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Trenes llegando a Caballito</h1>
+    <p class="subtitulo">Línea Sarmiento · tiempo real</p>
+    <div class="actualizado" id="actualizado"></div>
+    <div id="lista"></div>
+    <button class="btn" onclick="cargar()">Actualizar</button>
+  </div>
+
+  <script>
+    async function cargar() {
+      const lista = document.getElementById('lista');
+      const actualizado = document.getElementById('actualizado');
+      lista.innerHTML = '<p class="error-msg">Cargando...</p>';
+      try {
+        const res = await fetch('https://ariedro.dev/api-trenes/arribos/estacion/50');
+        const data = await res.json();
+        const ahora = data.timestamp;
+        const trenes = data.results;
+        if (!trenes || trenes.length === 0) {
+          lista.innerHTML = '<p class="error-msg">Sin datos disponibles en este momento.</p>';
+          return;
+        }
+        const hora = new Date(ahora * 1000).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+        actualizado.textContent = 'Actualizado ' + hora;
+        lista.innerHTML = trenes.map(t => {
+          const seg = t.arribo.segundos;
+          const min = Math.round(seg / 60);
+          const ramal = t.servicio.ramal?.nombre || 'Sarmiento';
+          const destino = t.servicio.ramal?.cabeceraFinal?.nombre || '';
+          const anden = t.arribo.anden?.nombre ? 'Andén ' + t.arribo.anden.nombre : '';
+          const llegada = t.arribo.llegada?.estimada
+            ? new Date(t.arribo.llegada.estimada).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+            : '';
+          const esAhora = min <= 1;
+          return `
+            <div class="tren-card">
+              <div>
+                <div class="minutos">${esAhora ? '&lt;1' : min}</div>
+                <div class="minutos-label">min</div>
+              </div>
+              <div class="separador"></div>
+              <div style="flex: 1;">
+                <div class="ramal">${ramal}${esAhora ? '<span class="badge-ahora">llegando</span>' : ''}</div>
+                <div class="detalle">Destino: ${destino}${llegada ? ' · ' + llegada : ''}</div>
+              </div>
+              ${anden ? `<div class="anden">${anden}</div>` : ''}
+            </div>`;
+        }).join('');
+      } catch(e) {
+        lista.innerHTML = '<p class="error-msg">No se pudo conectar. Intentá de nuevo.</p>';
+      }
+    }
+    cargar();
+  </script>
+</body>
+</html>
