@@ -16,10 +16,13 @@
     .separador { width: 1px; height: 40px; background: #e5e5e5; }
     .ramal { font-size: 14px; font-weight: 500; }
     .detalle { font-size: 12px; color: #888; margin-top: 3px; }
-    .anden { font-size: 12px; background: #f5f5f3; border: 1px solid #e5e5e5; border-radius: 8px; padding: 3px 10px; color: #666; white-space: nowrap; }
+    .sentido { font-size: 11px; font-weight: 500; border-radius: 8px; padding: 2px 10px; display: inline-block; margin-top: 5px; }
+    .sentido-moreno { background: #e6f4ea; color: #2d7a3a; }
+    .sentido-once { background: #e8f0fb; color: #1a56a0; }
     .badge-ahora { font-size: 11px; background: #e6f4ea; color: #2d7a3a; border-radius: 8px; padding: 2px 8px; display: inline-block; margin-left: 8px; }
-    .btn { display: block; margin: 1.5rem auto 0; padding: 8px 24px; font-size: 13px; background: #fff; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; }
-    .btn:hover { background: #f5f5f3; }
+    .btn-actualizar { display: block; width: 100%; padding: 14px; font-size: 15px; font-weight: 500; background: #1a1a1a; color: #fff; border: none; border-radius: 12px; cursor: pointer; margin-top: 1rem; }
+    .btn-actualizar:hover { background: #333; }
+    .btn-actualizar:active { transform: scale(0.98); }
     .actualizado { font-size: 12px; color: #aaa; text-align: right; margin-bottom: 1rem; }
     .error-msg { font-size: 14px; color: #888; text-align: center; padding: 2rem; }
   </style>
@@ -30,7 +33,7 @@
     <p class="subtitulo">Línea Sarmiento · tiempo real</p>
     <div class="actualizado" id="actualizado"></div>
     <div id="lista"></div>
-    <button class="btn" onclick="cargar()">Actualizar</button>
+    <button class="btn-actualizar" onclick="cargar()">Actualizar</button>
   </div>
 
   <script>
@@ -41,24 +44,33 @@
       try {
         const res = await fetch('https://ariedro.dev/api-trenes/arribos/estacion/50');
         const data = await res.json();
-        const ahora = data.timestamp;
         const trenes = data.results;
         if (!trenes || trenes.length === 0) {
           lista.innerHTML = '<p class="error-msg">Sin datos disponibles en este momento.</p>';
           return;
         }
-        const hora = new Date(ahora * 1000).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+        const hora = new Date(data.timestamp * 1000).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
         actualizado.textContent = 'Actualizado ' + hora;
         lista.innerHTML = trenes.map(t => {
           const seg = t.arribo.segundos;
           const min = Math.round(seg / 60);
-          const ramal = t.servicio.ramal?.nombre || 'Sarmiento';
+          const esAhora = min <= 1;
           const destino = t.servicio.ramal?.cabeceraFinal?.nombre || '';
+          const origen = t.servicio.ramal?.cabeceraInicial?.nombre || '';
           const anden = t.arribo.anden?.nombre ? 'Andén ' + t.arribo.anden.nombre : '';
           const llegada = t.arribo.llegada?.estimada
             ? new Date(t.arribo.llegada.estimada).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
             : '';
-          const esAhora = min <= 1;
+
+          const destinoLower = destino.toLowerCase();
+          const origenLower = origen.toLowerCase();
+          let sentidoHTML = '';
+          if (destinoLower.includes('moreno') || origenLower.includes('once')) {
+            sentidoHTML = '<span class="sentido sentido-moreno">Sentido Moreno</span>';
+          } else if (destinoLower.includes('once') || origenLower.includes('moreno')) {
+            sentidoHTML = '<span class="sentido sentido-once">Sentido Once</span>';
+          }
+
           return `
             <div class="tren-card">
               <div>
@@ -67,10 +79,10 @@
               </div>
               <div class="separador"></div>
               <div style="flex: 1;">
-                <div class="ramal">${ramal}${esAhora ? '<span class="badge-ahora">llegando</span>' : ''}</div>
-                <div class="detalle">Destino: ${destino}${llegada ? ' · ' + llegada : ''}</div>
+                <div class="ramal">${llegada || ''}${esAhora ? '<span class="badge-ahora">llegando</span>' : ''}</div>
+                <div class="detalle">${anden}</div>
+                <div>${sentidoHTML}</div>
               </div>
-              ${anden ? `<div class="anden">${anden}</div>` : ''}
             </div>`;
         }).join('');
       } catch(e) {
