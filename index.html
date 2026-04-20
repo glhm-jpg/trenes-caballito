@@ -14,7 +14,6 @@
     .minutos { font-size: 28px; font-weight: 500; min-width: 52px; text-align: center; }
     .minutos-label { font-size: 11px; color: #888; text-align: center; margin-top: 2px; }
     .separador { width: 1px; height: 40px; background: #e5e5e5; }
-    .ramal { font-size: 14px; font-weight: 500; }
     .detalle { font-size: 12px; color: #888; margin-top: 3px; }
     .sentido { font-size: 11px; font-weight: 500; border-radius: 8px; padding: 2px 10px; display: inline-block; margin-top: 5px; }
     .sentido-moreno { background: #e6f4ea; color: #2d7a3a; }
@@ -55,21 +54,14 @@
           const seg = t.arribo.segundos;
           const min = Math.round(seg / 60);
           const esAhora = min <= 1;
-          const destino = t.servicio.ramal?.cabeceraFinal?.nombre || '';
-          const origen = t.servicio.ramal?.cabeceraInicial?.nombre || '';
           const anden = t.arribo.anden?.nombre ? 'Andén ' + t.arribo.anden.nombre : '';
           const llegada = t.arribo.llegada?.estimada
             ? new Date(t.arribo.llegada.estimada).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
             : '';
-
-          const destinoLower = destino.toLowerCase();
-          const origenLower = origen.toLowerCase();
-          let sentidoHTML = '';
-          if (destinoLower.includes('moreno') || origenLower.includes('once')) {
-            sentidoHTML = '<span class="sentido sentido-moreno">Sentido Moreno</span>';
-          } else if (destinoLower.includes('once') || origenLower.includes('moreno')) {
-            sentidoHTML = '<span class="sentido sentido-once">Sentido Once</span>';
-          }
+          const sentido = t.servicio.sentido;
+          const sentidoHTML = sentido === 2
+            ? '<span class="sentido sentido-moreno">Sentido Moreno</span>'
+            : '<span class="sentido sentido-once">Sentido Once</span>';
 
           return `
             <div class="tren-card">
@@ -79,7 +71,7 @@
               </div>
               <div class="separador"></div>
               <div style="flex: 1;">
-                <div class="ramal">${llegada || ''}${esAhora ? '<span class="badge-ahora">llegando</span>' : ''}</div>
+                <div style="font-size: 14px; font-weight: 500;">${llegada || ''}${esAhora ? '<span class="badge-ahora">llegando</span>' : ''}</div>
                 <div class="detalle">${anden}</div>
                 <div>${sentidoHTML}</div>
               </div>
